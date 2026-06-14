@@ -50,6 +50,15 @@ def ok(data):
 def err(msg, code=400):
     return {'statusCode': code, 'headers': CORS, 'body': json.dumps({'error': msg}, ensure_ascii=False)}
 
+def get_header(event, name):
+    """Регистронезависимое чтение заголовка (прокси меняет регистр)."""
+    headers = event.get('headers', {}) or {}
+    name_lower = name.lower()
+    for k, v in headers.items():
+        if k.lower() == name_lower:
+            return v
+    return ''
+
 def handler(event: dict, context) -> dict:
     """Главное API: объекты, табель, документы, фото, команда, чат, статистика"""
     if event.get('httpMethod') == 'OPTIONS':
@@ -58,15 +67,17 @@ def handler(event: dict, context) -> dict:
     method = event.get('httpMethod', 'GET')
     raw_body = event.get('body') or '{}'
     body = json.loads(raw_body) if raw_body.strip() else {}
-    session_id = event.get('headers', {}).get('x-session-id', '')
+    # Сессия: из заголовка (регистронезависимо) или из body как запасной вариант
+    session_id = get_header(event, 'X-Session-Id') or body.get('__session_id', '')
     # Query-параметры (GET передаёт сюда фильтры)
     params = event.get('queryStringParameters') or {}
 
     # Путь берём из заголовка X-Api-Path (фронтенд всегда ставит)
     # Для POST/PUT/DELETE также принимаем из body.__path как запасной вариант
     path = (
-        event.get('headers', {}).get('x-api-path', '')
+        get_header(event, 'X-Api-Path')
         or body.get('__path', '')
+        or params.get('__path', '')
         or '/'
     )
 

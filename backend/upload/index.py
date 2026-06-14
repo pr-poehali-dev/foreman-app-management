@@ -35,13 +35,22 @@ def ok(data):
 def err(msg, code=400):
     return {'statusCode': code, 'headers': CORS, 'body': json.dumps({'error': msg}, ensure_ascii=False)}
 
+def get_header(event, name):
+    """Регистронезависимое чтение заголовка (прокси меняет регистр)."""
+    headers = event.get('headers', {}) or {}
+    name_lower = name.lower()
+    for k, v in headers.items():
+        if k.lower() == name_lower:
+            return v
+    return ''
+
 def handler(event: dict, context) -> dict:
     """Загрузка файлов (документы и фото) в S3. Принимает base64 в теле запроса."""
     if event.get('httpMethod') == 'OPTIONS':
         return {'statusCode': 200, 'headers': CORS, 'body': ''}
 
-    session_id = event.get('headers', {}).get('x-session-id', '')
     body = json.loads(event.get('body') or '{}')
+    session_id = get_header(event, 'X-Session-Id') or body.get('__session_id', '')
 
     conn = get_conn()
     cur = conn.cursor()

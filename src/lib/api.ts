@@ -36,7 +36,7 @@ export async function logout() {
   await fetch(AUTH_URL, {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ __action: 'logout' }),
+    body: JSON.stringify({ __action: 'logout', __session_id: getSessionId() }),
   });
   localStorage.removeItem('session_id');
 }
@@ -44,7 +44,11 @@ export async function logout() {
 export async function getMe(): Promise<User | null> {
   const sid = getSessionId();
   if (!sid) return null;
-  const res = await fetch(AUTH_URL, { method: 'GET', headers: headers() });
+  // дублируем сессию в query на случай фильтрации заголовков прокси
+  const res = await fetch(`${AUTH_URL}?__session_id=${encodeURIComponent(sid)}`, {
+    method: 'GET',
+    headers: headers(),
+  });
   if (!res.ok) return null;
   const data = await res.json();
   return data.user || null;
@@ -54,7 +58,7 @@ export async function registerForeman(payload: { login: string; password: string
   const res = await fetch(AUTH_URL, {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ __action: 'register', ...payload }),
+    body: JSON.stringify({ __action: 'register', __session_id: getSessionId(), ...payload }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Ошибка регистрации');
@@ -63,30 +67,33 @@ export async function registerForeman(payload: { login: string; password: string
 
 // ---- API core ----
 async function call(path: string, method = 'GET', body?: object) {
-  // Путь всегда в заголовке X-Api-Path
+  const sid = getSessionId();
+  // Путь и сессия в заголовках + дублируем как запасной вариант (прокси может резать заголовки)
   const h = headers({ 'X-Api-Path': path });
   let url = API_URL;
 
   if (method === 'GET') {
-    // GET: параметры в query string, body не отправляем
+    // GET: параметры + путь + сессия в query string (на случай фильтрации заголовков прокси)
+    const q = new URLSearchParams();
+    q.append('__path', path);
+    if (sid) q.append('__session_id', sid);
     if (body && Object.keys(body).length > 0) {
-      const q = new URLSearchParams();
       for (const [k, v] of Object.entries(body)) {
         if (v !== undefined && v !== null) q.append(k, String(v));
       }
-      url += '?' + q.toString();
     }
+    url += '?' + q.toString();
     const res = await fetch(url, { method: 'GET', headers: h });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Ошибка');
     return data;
   }
 
-  // POST / PUT / DELETE: параметры в body
+  // POST / PUT / DELETE: параметры + путь + сессия в body
   const opts: RequestInit = {
     method,
     headers: h,
-    body: JSON.stringify(body || {}),
+    body: JSON.stringify({ __path: path, __session_id: sid, ...(body || {}) }),
   };
   const res = await fetch(url, opts);
   const data = await res.json();
@@ -158,7 +165,7 @@ export async function uploadFile(payload: {
   const res = await fetch(UPLOAD_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Session-Id': getSessionId() },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, __session_id: getSessionId() }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Ошибка загрузки');

@@ -15,6 +15,15 @@ def get_conn():
     conn = psycopg2.connect(os.environ['DATABASE_URL'], options=f'-c search_path={schema}')
     return conn
 
+def get_header(event, name):
+    """Регистронезависимое чтение заголовка (прокси меняет регистр)."""
+    headers = event.get('headers', {}) or {}
+    name_lower = name.lower()
+    for k, v in headers.items():
+        if k.lower() == name_lower:
+            return v
+    return ''
+
 def handler(event: dict, context) -> dict:
     """Auth: login, logout, me, register foreman. Маршрутизация по __action в body или path."""
     if event.get('httpMethod') == 'OPTIONS':
@@ -22,7 +31,12 @@ def handler(event: dict, context) -> dict:
 
     method = event.get('httpMethod', 'GET')
     body = json.loads(event.get('body') or '{}')
-    session_id = event.get('headers', {}).get('x-session-id', '')
+    params = event.get('queryStringParameters') or {}
+    session_id = (
+        get_header(event, 'X-Session-Id')
+        or body.get('__session_id', '')
+        or params.get('__session_id', '')
+    )
     action = body.get('__action', '')
 
     conn = get_conn()
