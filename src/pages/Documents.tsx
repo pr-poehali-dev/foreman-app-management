@@ -1,18 +1,31 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Icon from "@/components/ui/icon";
-import { getDocuments, addDocument, deleteDocument } from "@/lib/api";
+import { getDocuments, deleteDocument, uploadFile } from "@/lib/api";
 import type { Doc, User } from "@/lib/api";
 
 interface Props { user: User }
 
 const categories = ["Все", "Акты", "Сметы", "Проект", "Журналы", "Договоры", "Сертификаты", "Прочее"];
+
 const fileIcons: Record<string, { icon: string; color: string; bg: string }> = {
   pdf:  { icon: "FileText",        color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
   xlsx: { icon: "FileSpreadsheet", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
   xls:  { icon: "FileSpreadsheet", color: "#22c55e", bg: "rgba(34,197,94,0.12)" },
   docx: { icon: "FileType",        color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
   doc:  { icon: "FileType",        color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
+  png:  { icon: "Image",           color: "#a855f7", bg: "rgba(168,85,247,0.12)" },
+  jpg:  { icon: "Image",           color: "#a855f7", bg: "rgba(168,85,247,0.12)" },
+  jpeg: { icon: "Image",           color: "#a855f7", bg: "rgba(168,85,247,0.12)" },
 };
+
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function Documents({ user }: Props) {
   const [docs, setDocs] = useState<Doc[]>([]);
@@ -20,27 +33,44 @@ export default function Documents({ user }: Props) {
   const [cat, setCat] = useState("Все");
   const [search, setSearch] = useState("");
   const [dragOver, setDragOver] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', file_url: '', file_size: '', file_type: 'pdf', category: 'Акты' });
-  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState("Акты");
   const [error, setError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function load() {
-    try { const data = await getDocuments(); setDocs(data); } catch { /* offline */ }
+    try { setDocs(await getDocuments()); } catch { /* offline */ }
     setLoading(false);
   }
 
   useEffect(() => { load(); }, []);
 
-  async function save(e: React.FormEvent) {
-    e.preventDefault(); setSaving(true); setError('');
-    try {
-      const created = await addDocument(form);
-      setDocs(prev => [created, ...prev]);
-      setShowForm(false);
-      setForm({ name: '', file_url: '', file_size: '', file_type: 'pdf', category: 'Акты' });
-    } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Ошибка'); }
-    setSaving(false);
+  async function handleFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(true); setError('');
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setUploadProgress(`Загрузка ${i + 1}/${files.length}: ${file.name}`);
+      try {
+        const base64 = await readFileAsBase64(file);
+        const ext = file.name.rsplit ? file.name.split('.').pop()?.toLowerCase() || 'file' : (file.name.split('.').pop()?.toLowerCase() || 'file');
+        const result = await uploadFile({
+          file_data: base64,
+          file_name: file.name,
+          file_type: file.type || 'application/octet-stream',
+          upload_type: 'document',
+          category: selectedCategory,
+        });
+        setDocs(prev => [{ ...result, file_type: ext } as Doc, ...prev]);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Ошибка загрузки');
+      }
+    }
+
+    setUploading(false);
+    setUploadProgress('');
   }
 
   async function remove(id: number) {
@@ -62,30 +92,85 @@ export default function Documents({ user }: Props) {
           <h1 className="text-3xl font-oswald font-bold text-white tracking-wide">ДОКУМЕНТЫ</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>{docs.length} файлов</p>
         </div>
-        <button onClick={() => setShowForm(true)} className="btn-orange flex items-center gap-2 text-sm">
-          <Icon name="Upload" size={16} />Добавить
+        <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
+          className="btn-orange flex items-center gap-2 text-sm">
+          {uploading
+            ? <><Icon name="Loader2" size={16} className="animate-spin" />Загрузка...</>
+            : <><Icon name="Upload" size={16} />Загрузить файл</>
+          }
         </button>
       </div>
 
-      {/* Drop zone */}
-      <div onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)}
-        onDrop={() => { setDragOver(false); setShowForm(true); }}
-        onClick={() => setShowForm(true)}
-        className="rounded-2xl border-2 border-dashed flex flex-col items-center justify-center py-7 mb-5 transition-all cursor-pointer"
-        style={{ borderColor: dragOver ? "var(--orange)" : "var(--surface-4)", background: dragOver ? "rgba(255,140,0,0.06)" : "var(--surface-2)" }}>
-        <Icon name="Upload" size={22} style={{ color: dragOver ? "var(--orange)" : "var(--text-muted)" }} />
-        <p className="text-sm font-medium mt-2" style={{ color: dragOver ? "var(--orange)" : "var(--text-secondary)" }}>
-          Нажмите или перетащите файл
-        </p>
-        <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>PDF, DOCX, XLSX — до 50 МБ</p>
+      {/* Hidden file input */}
+      <input ref={fileInputRef} type="file" multiple className="hidden"
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+        onChange={e => handleFiles(e.target.files)} />
+
+      {/* Category selector for upload */}
+      <div className="app-card p-4 mb-4 flex items-center gap-3 flex-wrap">
+        <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Категория загрузки:</span>
+        {categories.filter(c => c !== "Все").map(c => (
+          <button key={c} onClick={() => setSelectedCategory(c)}
+            className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
+            style={{
+              background: selectedCategory === c ? "var(--orange)" : "var(--surface-3)",
+              color: selectedCategory === c ? "#000" : "var(--text-secondary)",
+              border: `1px solid ${selectedCategory === c ? "var(--orange)" : "var(--surface-4)"}`,
+            }}>
+            {c}
+          </button>
+        ))}
       </div>
 
+      {/* Drop zone */}
+      <div
+        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={e => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
+        onClick={() => !uploading && fileInputRef.current?.click()}
+        className="rounded-2xl border-2 border-dashed flex flex-col items-center justify-center py-8 mb-5 transition-all cursor-pointer"
+        style={{
+          borderColor: dragOver ? "var(--orange)" : uploading ? "var(--green)" : "var(--surface-4)",
+          background: dragOver ? "rgba(255,140,0,0.06)" : uploading ? "rgba(34,197,94,0.05)" : "var(--surface-2)"
+        }}>
+        {uploading ? (
+          <>
+            <Icon name="Loader2" size={28} className="animate-spin mb-3" style={{ color: "var(--green)" }} />
+            <p className="text-sm font-medium" style={{ color: "var(--green)" }}>{uploadProgress}</p>
+            <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Файл загружается в облако...</p>
+          </>
+        ) : (
+          <>
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3"
+              style={{ background: dragOver ? "rgba(255,140,0,0.15)" : "var(--surface-3)" }}>
+              <Icon name="Upload" size={22} style={{ color: dragOver ? "var(--orange)" : "var(--text-muted)" }} />
+            </div>
+            <p className="text-sm font-medium" style={{ color: dragOver ? "var(--orange)" : "var(--text-secondary)" }}>
+              {dragOver ? "Отпустите файл" : "Перетащите файл или нажмите"}
+            </p>
+            <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>PDF, DOCX, XLSX, PNG, JPG — до 50 МБ</p>
+          </>
+        )}
+      </div>
+
+      {error && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl mb-4 text-sm"
+          style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)" }}>
+          <Icon name="AlertCircle" size={15} />{error}
+          <button onClick={() => setError('')} className="ml-auto"><Icon name="X" size={14} /></button>
+        </div>
+      )}
+
+      {/* Filters */}
       <div className="flex gap-2 mb-4 overflow-x-auto pb-1 flex-wrap">
         {categories.map(c => (
           <button key={c} onClick={() => setCat(c)}
             className={`px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${cat === c ? "btn-orange" : ""}`}
             style={cat !== c ? { background: "var(--surface-3)", color: "var(--text-secondary)", border: "1px solid var(--surface-4)" } : {}}>
             {c}
+            {c !== "Все" && docs.filter(d => d.category === c).length > 0 && (
+              <span className="ml-1.5 text-xs opacity-60">({docs.filter(d => d.category === c).length})</span>
+            )}
           </button>
         ))}
         <div className="relative ml-auto min-w-[160px]">
@@ -101,12 +186,13 @@ export default function Documents({ user }: Props) {
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3" style={{ color: "var(--text-muted)" }}>
           <Icon name="FolderOpen" size={40} />
-          <p className="text-sm">Документов пока нет</p>
+          <p className="text-sm">{docs.length === 0 ? "Загрузите первый документ" : "Ничего не найдено"}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2 animate-stagger">
           {filtered.map(doc => {
-            const fi = fileIcons[doc.file_type] || fileIcons.pdf;
+            const ext = doc.file_type?.toLowerCase() || 'file';
+            const fi = fileIcons[ext] || { icon: "File", color: "var(--text-secondary)", bg: "var(--surface-3)" };
             return (
               <div key={doc.id} className="app-card p-4 flex items-center gap-4 group">
                 <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: fi.bg }}>
@@ -115,13 +201,15 @@ export default function Documents({ user }: Props) {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-white text-sm truncate">{doc.name}</p>
                   <div className="flex items-center gap-2 mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
-                    {doc.object_name && <><span className="truncate max-w-[120px]">{doc.object_name}</span><span>·</span></>}
+                    {doc.object_name && <><span className="truncate max-w-[100px]">{doc.object_name}</span><span>·</span></>}
                     {doc.file_size && <span>{doc.file_size}</span>}
                     {doc.created_at && <><span>·</span><span>{new Date(doc.created_at).toLocaleDateString('ru')}</span></>}
+                    {doc.uploader && <><span>·</span><span className="truncate max-w-[80px]">{doc.uploader}</span></>}
                   </div>
                 </div>
                 {doc.category && (
-                  <span className="status-badge text-xs flex-shrink-0" style={{ background: "var(--surface-3)", color: "var(--text-secondary)" }}>
+                  <span className="status-badge text-xs flex-shrink-0"
+                    style={{ background: "var(--surface-3)", color: "var(--text-secondary)" }}>
                     {doc.category}
                   </span>
                 )}
@@ -144,73 +232,6 @@ export default function Documents({ user }: Props) {
               </div>
             );
           })}
-        </div>
-      )}
-
-      {/* Modal */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}>
-          <div className="w-full max-w-md animate-fade-in">
-            <div className="app-card p-6">
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="font-oswald text-xl font-bold text-white">ДОБАВИТЬ ДОКУМЕНТ</h2>
-                <button onClick={() => setShowForm(false)} style={{ color: "var(--text-muted)" }}><Icon name="X" size={18} /></button>
-              </div>
-              <form onSubmit={save} className="flex flex-col gap-3">
-                <div>
-                  <label className="text-xs uppercase tracking-widest mb-1 block" style={{ color: "var(--text-muted)" }}>Название *</label>
-                  <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required
-                    placeholder="Акт выполненных работ №1"
-                    className="w-full px-4 py-2.5 rounded-xl text-sm outline-none"
-                    style={{ background: "var(--surface-3)", border: "1px solid var(--surface-4)", color: "var(--text-primary)" }} />
-                </div>
-                <div>
-                  <label className="text-xs uppercase tracking-widest mb-1 block" style={{ color: "var(--text-muted)" }}>Ссылка на файл</label>
-                  <input value={form.file_url} onChange={e => setForm(p => ({ ...p, file_url: e.target.value }))}
-                    placeholder="https://..."
-                    className="w-full px-4 py-2.5 rounded-xl text-sm outline-none"
-                    style={{ background: "var(--surface-3)", border: "1px solid var(--surface-4)", color: "var(--text-primary)" }} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs uppercase tracking-widest mb-1 block" style={{ color: "var(--text-muted)" }}>Тип файла</label>
-                    <select value={form.file_type} onChange={e => setForm(p => ({ ...p, file_type: e.target.value }))}
-                      className="w-full px-4 py-2.5 rounded-xl text-sm outline-none"
-                      style={{ background: "var(--surface-3)", border: "1px solid var(--surface-4)", color: "var(--text-primary)" }}>
-                      {['pdf','docx','xlsx','doc','xls'].map(t => <option key={t} value={t}>{t.toUpperCase()}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs uppercase tracking-widest mb-1 block" style={{ color: "var(--text-muted)" }}>Категория</label>
-                    <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
-                      className="w-full px-4 py-2.5 rounded-xl text-sm outline-none"
-                      style={{ background: "var(--surface-3)", border: "1px solid var(--surface-4)", color: "var(--text-primary)" }}>
-                      {categories.filter(c => c !== "Все").map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs uppercase tracking-widest mb-1 block" style={{ color: "var(--text-muted)" }}>Размер файла</label>
-                  <input value={form.file_size} onChange={e => setForm(p => ({ ...p, file_size: e.target.value }))}
-                    placeholder="1.2 МБ"
-                    className="w-full px-4 py-2.5 rounded-xl text-sm outline-none"
-                    style={{ background: "var(--surface-3)", border: "1px solid var(--surface-4)", color: "var(--text-primary)" }} />
-                </div>
-                {error && <div className="px-3 py-2 rounded-xl text-sm" style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444" }}>{error}</div>}
-                <div className="flex gap-3 mt-1">
-                  <button type="button" onClick={() => setShowForm(false)}
-                    className="flex-1 py-2.5 rounded-xl text-sm"
-                    style={{ background: "var(--surface-3)", color: "var(--text-secondary)", border: "1px solid var(--surface-4)" }}>
-                    Отмена
-                  </button>
-                  <button type="submit" disabled={saving} className="flex-1 btn-orange py-2.5 text-sm font-bold flex items-center justify-center gap-2">
-                    {saving ? <><Icon name="Loader2" size={14} className="animate-spin" />Сохранение...</> : <><Icon name="Upload" size={14} />Добавить</>}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
         </div>
       )}
     </div>

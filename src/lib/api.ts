@@ -1,5 +1,6 @@
-const AUTH_URL = 'https://functions.poehali.dev/13707451-a5e0-45b6-a7e6-febd1cc14f49';
-const API_URL  = 'https://functions.poehali.dev/6a443ab9-b2f7-4356-a130-8735a8ad1b9e';
+const AUTH_URL   = 'https://functions.poehali.dev/13707451-a5e0-45b6-a7e6-febd1cc14f49';
+const API_URL    = 'https://functions.poehali.dev/6a443ab9-b2f7-4356-a130-8735a8ad1b9e';
+const UPLOAD_URL = 'https://functions.poehali.dev/2207a271-e3a3-4f64-abcb-a4528276d907';
 
 export function getSessionId(): string {
   return localStorage.getItem('session_id') || '';
@@ -99,3 +100,24 @@ export const sendMessage = (text: string) => call('/chat', 'POST', { text });
 
 // ---- Stats ----
 export const getStats = (): Promise<Stats> => call('/stats');
+
+// ---- Upload ----
+export async function uploadFile(payload: {
+  file_data: string;       // base64 (с data: префиксом или без)
+  file_name: string;
+  file_type: string;       // MIME type
+  upload_type: 'document' | 'photo';
+  object_id?: number;
+  category?: string;
+  caption?: string;
+  stage?: string;
+}) {
+  const res = await fetch(UPLOAD_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Session-Id': getSessionId() },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Ошибка загрузки');
+  return data;
+}
