@@ -4,89 +4,61 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 220 16% 8%;
+    --foreground: 210 20% 95%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 220 14% 11%;
+    --card-foreground: 210 20% 95%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 220 14% 11%;
+    --popover-foreground: 210 20% 95%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 32 100% 55%;
+    --primary-foreground: 220 16% 8%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 220 12% 16%;
+    --secondary-foreground: 210 20% 85%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 220 12% 14%;
+    --muted-foreground: 215 12% 52%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 32 100% 55%;
+    --accent-foreground: 220 16% 8%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 220 12% 18%;
+    --input: 220 12% 16%;
+    --ring: 32 100% 55%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 220 16% 6%;
+    --sidebar-foreground: 210 20% 85%;
+    --sidebar-primary: 32 100% 55%;
+    --sidebar-primary-foreground: 220 16% 8%;
+    --sidebar-accent: 220 12% 14%;
+    --sidebar-accent-foreground: 210 20% 90%;
+    --sidebar-border: 220 12% 14%;
+    --sidebar-ring: 32 100% 55%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Custom app vars */
+    --orange: #ff8c00;
+    --orange-bright: #ffa500;
+    --orange-glow: rgba(255, 140, 0, 0.25);
+    --surface-1: #0d0f14;
+    --surface-2: #12151c;
+    --surface-3: #171b24;
+    --surface-4: #1e2330;
+    --text-primary: #f0f2f5;
+    --text-secondary: #8892a4;
+    --text-muted: #4a5568;
+    --green: #22c55e;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+    --cyan: #06b6d4;
   }
 }
 
@@ -97,5 +69,243 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: "Golos Text", sans-serif;
+    background-color: var(--surface-1);
+    color: var(--text-primary);
+    overflow-x: hidden;
   }
+
+  h1,
+  h2,
+  h3 {
+    font-family: "Oswald", sans-serif;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--surface-2);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--surface-4);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--orange);
+}
+
+/* Animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--orange-glow);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.35s ease-out both;
+}
+
+.animate-slide-right {
+  animation: slide-in-right 0.3s ease-out both;
+}
+
+.animate-stagger > * {
+  animation: fade-in 0.35s ease-out both;
+}
+.animate-stagger > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.animate-stagger > *:nth-child(2) {
+  animation-delay: 60ms;
+}
+.animate-stagger > *:nth-child(3) {
+  animation-delay: 120ms;
+}
+.animate-stagger > *:nth-child(4) {
+  animation-delay: 180ms;
+}
+.animate-stagger > *:nth-child(5) {
+  animation-delay: 240ms;
+}
+.animate-stagger > *:nth-child(6) {
+  animation-delay: 300ms;
+}
+
+/* Cards */
+.app-card {
+  background: var(--surface-2);
+  border: 1px solid var(--surface-4);
+  border-radius: 16px;
+  transition: all 0.2s ease;
+}
+
+.app-card:hover {
+  border-color: rgba(255, 140, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Orange glow button */
+.btn-orange {
+  background: var(--orange);
+  color: var(--surface-1);
+  font-weight: 700;
+  border-radius: 12px;
+  padding: 10px 20px;
+  transition: all 0.2s ease;
+  font-family: "Golos Text", sans-serif;
+}
+
+.btn-orange:hover {
+  background: var(--orange-bright);
+  box-shadow: 0 0 20px var(--orange-glow);
+  transform: translateY(-1px);
+}
+
+/* Status badges */
+.status-active {
+  color: var(--green);
+  background: rgba(34, 197, 94, 0.12);
+}
+.status-paused {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+}
+.status-done {
+  color: var(--text-secondary);
+  background: rgba(148, 163, 184, 0.1);
+}
+.status-badge {
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Offline banner */
+.offline-banner {
+  background: linear-gradient(90deg, #1a0a00, #2d1500);
+  border-bottom: 1px solid rgba(255, 140, 0, 0.3);
+}
+
+/* Nav item active */
+.nav-active {
+  background: rgba(255, 140, 0, 0.12);
+  color: var(--orange);
+  border-right: 3px solid var(--orange);
+}
+
+/* Grid lines background */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Metric card */
+.metric-card {
+  background: var(--surface-2);
+  border: 1px solid var(--surface-4);
+  border-radius: 16px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 16px 16px 0 0;
+}
+
+.metric-card.orange::before {
+  background: var(--orange);
+}
+.metric-card.green::before {
+  background: var(--green);
+}
+.metric-card.blue::before {
+  background: var(--blue);
+}
+.metric-card.purple::before {
+  background: var(--purple);
+}
+
+/* Tab bar bottom mobile */
+.tab-bar {
+  background: rgba(13, 15, 20, 0.95);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid var(--surface-4);
+}
+
+/* Progress bar */
+.progress-bar {
+  height: 6px;
+  background: var(--surface-4);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--orange), var(--orange-bright));
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-3) 25%,
+    var(--surface-4) 50%,
+    var(--surface-3) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
 }
