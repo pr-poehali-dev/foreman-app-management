@@ -25,7 +25,7 @@ export default function Stats({ user }: Props) {
 
   const metrics = stats ? [
     { label: "Объектов в работе", val: String(stats.active_objects), icon: "Building2", color: "orange" },
-    { label: "Прорабов", val: String(stats.foremans), icon: "Users", color: "blue" },
+    { label: "Рабочих", val: String((stats as unknown as Record<string,unknown>).workers ?? stats.foremans), icon: "HardHat", color: "blue" },
     { label: "На объекте сегодня", val: String(stats.on_site_today), icon: "CheckCircle2", color: "green" },
     { label: "Документов", val: String(stats.documents), icon: "FileText", color: "purple" },
   ] : [];

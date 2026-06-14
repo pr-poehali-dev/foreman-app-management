@@ -101,6 +101,26 @@ export const sendMessage = (text: string) => call('/chat', 'POST', { text });
 // ---- Stats ----
 export const getStats = (): Promise<Stats> => call('/stats');
 
+// ---- Workers ----
+export interface Worker {
+  id: number; full_name: string; specialty?: string; phone?: string;
+  object_id?: number; object_name?: string; is_active?: boolean; created_at?: string;
+}
+export interface WorkerTimesheetRow {
+  id: number; worker_id: number; work_date: string; status: string;
+  note?: string; full_name: string; specialty?: string; object_id?: number;
+}
+
+export const getWorkers = (object_id?: number): Promise<Worker[]> =>
+  call('/workers', 'GET', object_id ? { object_id } : {});
+export const createWorker = (b: Partial<Worker>) => call('/workers', 'POST', b);
+export const updateWorker = (id: number, b: Partial<Worker>) => call(`/workers/${id}`, 'PUT', b);
+export const deleteWorker = (id: number) => call(`/workers/${id}`, 'DELETE');
+
+export const getWorkerTimesheet = (month: string, object_id?: number): Promise<WorkerTimesheetRow[]> =>
+  call('/worker-timesheet', 'GET', { month, ...(object_id ? { object_id } : {}) });
+export const setWorkerTimesheet = (b: object) => call('/worker-timesheet', 'POST', b);
+
 // ---- Upload ----
 export async function uploadFile(payload: {
   file_data: string;       // base64 (с data: префиксом или без)

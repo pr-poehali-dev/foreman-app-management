@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import Icon from "@/components/ui/icon";
 import Objects from "./Objects";
 import Timesheet from "./Timesheet";
+import Workers from "./Workers";
 import Documents from "./Documents";
 import Photos from "./Photos";
 import Team from "./Team";
@@ -15,6 +16,7 @@ import type { User } from "@/lib/api";
 const navItems = [
   { id: "stats",     label: "Статистика",   icon: "BarChart3",    badge: 0 },
   { id: "objects",   label: "Объекты",       icon: "Building2",    badge: 0 },
+  { id: "workers",   label: "Рабочие",       icon: "HardHat",      badge: 0 },
   { id: "timesheet", label: "Табель",         icon: "CalendarDays", badge: 0 },
   { id: "documents", label: "Документы",      icon: "FolderOpen",   badge: 0 },
   { id: "photos",    label: "Фотоотчёты",     icon: "Camera",       badge: 0 },
@@ -47,6 +49,7 @@ export default function ManagerDashboard({ user, onLogout }: Props) {
   const pageComponents: Record<string, React.ReactNode> = {
     stats: <Stats user={user} />,
     objects: <Objects user={user} />,
+    workers: <Workers user={user} />,
     timesheet: <Timesheet user={user} />,
     documents: <Documents user={user} />,
     photos: <Photos user={user} />,

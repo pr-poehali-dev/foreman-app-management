@@ -244,14 +244,126 @@ def handler(event: dict, context) -> dict:
                 row = cur.fetchone(); conn.commit()
                 return ok({'id': row[0], 'text': row[1], 'created_at': row[2].isoformat(), 'full_name': user['full_name'], 'role': user['role'], 'login': user['login']})
 
-        # ===== STATS =====
+        # ===== WORKERS =====
+        if path.startswith('/workers'):
+            parts = path.split('/')
+            wid = parts[2] if len(parts) > 2 and parts[2].isdigit() else None
+
+            if method == 'GET':
+                obj_filter = params.get('object_id') or body.get('object_id')
+                if obj_filter:
+                    cur.execute("""
+                        SELECT w.*, o.name as object_name
+                        FROM workers w LEFT JOIN objects o ON o.id = w.object_id
+                        WHERE w.object_id = %s AND w.is_active = TRUE
+                        ORDER BY w.full_name
+                    """, (obj_filter,))
+                elif user['role'] == 'manager':
+                    cur.execute("""
+                        SELECT w.*, o.name as object_name
+                        FROM workers w LEFT JOIN objects o ON o.id = w.object_id
+                        WHERE w.is_active = TRUE
+                        ORDER BY w.full_name
+                    """)
+                else:
+                    # Прораб видит рабочих своих объектов
+                    cur.execute("""
+                        SELECT w.*, o.name as object_name
+                        FROM workers w LEFT JOIN objects o ON o.id = w.object_id
+                        WHERE w.is_active = TRUE AND o.foreman_id = %s
+                        ORDER BY w.full_name
+                    """, (user['id'],))
+                return ok(to_list(cur, cur.fetchall()))
+
+            if method == 'POST' and not wid:
+                full_name = body.get('full_name', '').strip()
+                if not full_name:
+                    return err('Укажите имя рабочего')
+                cur.execute(
+                    "INSERT INTO workers (full_name, specialty, phone, object_id, created_by) VALUES (%s,%s,%s,%s,%s) RETURNING *",
+                    (full_name, body.get('specialty'), body.get('phone'), body.get('object_id') or None, user['id'])
+                )
+                row = cur.fetchone(); conn.commit()
+                result = to_dict(cur, row)
+                # Сразу добавляем запись в табель на сегодня если назначен на объект
+                if result.get('object_id'):
+                    from datetime import date
+                    today = date.today().isoformat()
+                    cur.execute("""
+                        INSERT INTO worker_timesheet (worker_id, object_id, work_date, status, created_by)
+                        VALUES (%s,%s,%s,'work',%s)
+                        ON CONFLICT (worker_id, work_date) DO NOTHING
+                    """, (result['id'], result['object_id'], today, user['id']))
+                    conn.commit()
+                return ok(result)
+
+            if method == 'PUT' and wid:
+                cur.execute(
+                    "UPDATE workers SET full_name=%s, specialty=%s, phone=%s, object_id=%s, is_active=%s WHERE id=%s RETURNING *",
+                    (body.get('full_name'), body.get('specialty'), body.get('phone'), body.get('object_id') or None, body.get('is_active', True), wid)
+                )
+                row = cur.fetchone(); conn.commit()
+                return ok(to_dict(cur, row) if row else {})
+
+            if method == 'DELETE' and wid:
+                cur.execute("UPDATE workers SET is_active=FALSE WHERE id=%s", (wid,))
+                conn.commit()
+                return ok({'ok': True})
+
+        # ===== WORKER TIMESHEET =====
+        if path.startswith('/worker-timesheet'):
+            month = params.get('month') or body.get('month') or datetime.now().strftime('%Y-%m')
+            obj_filter = params.get('object_id') or body.get('object_id')
+
+            if method == 'GET':
+                if obj_filter:
+                    cur.execute("""
+                        SELECT wt.*, w.full_name, w.specialty
+                        FROM worker_timesheet wt
+                        JOIN workers w ON w.id = wt.worker_id
+                        WHERE to_char(wt.work_date,'YYYY-MM') = %s AND wt.object_id = %s AND w.is_active = TRUE
+                        ORDER BY w.full_name, wt.work_date
+                    """, (month, obj_filter))
+                elif user['role'] == 'manager':
+                    cur.execute("""
+                        SELECT wt.*, w.full_name, w.specialty
+                        FROM worker_timesheet wt
+                        JOIN workers w ON w.id = wt.worker_id
+                        WHERE to_char(wt.work_date,'YYYY-MM') = %s AND w.is_active = TRUE
+                        ORDER BY w.full_name, wt.work_date
+                    """, (month,))
+                else:
+                    cur.execute("""
+                        SELECT wt.*, w.full_name, w.specialty
+                        FROM worker_timesheet wt
+                        JOIN workers w ON w.id = wt.worker_id
+                        JOIN objects o ON o.id = wt.object_id
+                        WHERE to_char(wt.work_date,'YYYY-MM') = %s AND o.foreman_id = %s AND w.is_active = TRUE
+                        ORDER BY w.full_name, wt.work_date
+                    """, (month, user['id']))
+                return ok(to_list(cur, cur.fetchall()))
+
+            if method == 'POST':
+                cur.execute("""
+                    INSERT INTO worker_timesheet (worker_id, object_id, work_date, status, note, created_by)
+                    VALUES (%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (worker_id, work_date)
+                    DO UPDATE SET status=EXCLUDED.status, note=EXCLUDED.note, object_id=EXCLUDED.object_id, updated_at=NOW()
+                    RETURNING *
+                """, (body.get('worker_id'), body.get('object_id') or None, body.get('work_date'), body.get('status', 'work'), body.get('note'), user['id']))
+                row = cur.fetchone(); conn.commit()
+                return ok(to_dict(cur, row))
+
+        # ===== STATS (обновлённый с рабочими) =====
         if path.startswith('/stats'):
             cur.execute("SELECT COUNT(*) FROM objects WHERE status='active'")
             active_obj = cur.fetchone()[0]
             cur.execute("SELECT COUNT(*) FROM users WHERE role='foreman' AND is_active=TRUE")
             foremans = cur.fetchone()[0]
-            cur.execute("SELECT COUNT(*) FROM timesheet WHERE work_date = CURRENT_DATE AND status='work'")
+            cur.execute("SELECT COUNT(*) FROM worker_timesheet WHERE work_date = CURRENT_DATE AND status='work'")
             on_site = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM workers WHERE is_active=TRUE")
+            workers_count = cur.fetchone()[0]
             cur.execute("SELECT COUNT(*) FROM documents")
             docs_count = cur.fetchone()[0]
             cur.execute("SELECT COUNT(*) FROM photos")
@@ -261,15 +373,15 @@ def handler(event: dict, context) -> dict:
 
             if user['role'] == 'manager':
                 cur.execute("SELECT o.id, o.name, o.progress, o.status, o.budget, u.full_name as foreman_name FROM objects o LEFT JOIN users u ON u.id=o.foreman_id ORDER BY o.created_at DESC")
-                objects_list = to_list(cur, cur.fetchall())
             else:
                 cur.execute("SELECT o.id, o.name, o.progress, o.status, o.budget, u.full_name as foreman_name FROM objects o LEFT JOIN users u ON u.id=o.foreman_id WHERE o.foreman_id=%s ORDER BY o.created_at DESC", (user['id'],))
-                objects_list = to_list(cur, cur.fetchall())
+            objects_list = to_list(cur, cur.fetchall())
 
             return ok({
                 'active_objects': active_obj,
                 'foremans': foremans,
                 'on_site_today': on_site,
+                'workers': workers_count,
                 'documents': docs_count,
                 'photos': photos_count,
                 'messages': msgs_count,
