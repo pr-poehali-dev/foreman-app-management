@@ -32,25 +32,29 @@ export default function Stats({ user }: Props) {
 
   return (
     <div className="animate-fade-in">
-      <div className="flex items-center justify-between mb-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-3xl font-oswald font-bold text-white tracking-wide">СТАТИСТИКА</h1>
+          <h1 className="text-2xl sm:text-3xl font-oswald font-bold text-white tracking-wide">СТАТИСТИКА</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>
             Дашборд {user.role === 'manager' ? 'управленца' : 'прораба'}
           </p>
         </div>
-        <button onClick={load} className="w-9 h-9 rounded-xl flex items-center justify-center"
+        <button
+          onClick={load}
+          className="w-11 h-11 rounded-xl flex items-center justify-center"
           style={{ background: "var(--surface-3)", color: "var(--text-secondary)", border: "1px solid var(--surface-4)" }}>
-          <Icon name="RefreshCw" size={15} />
+          <Icon name="RefreshCw" size={16} />
         </button>
       </div>
 
+      {/* Metrics grid — 2 cols on mobile, 4 on sm+ */}
       {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           {[1,2,3,4].map(i => <div key={i} className="skeleton h-28 rounded-2xl" />)}
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5 animate-stagger">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5 animate-stagger">
           {metrics.map(m => (
             <div key={m.label} className={`metric-card ${m.color}`}>
               <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ background: bgMap[m.color] }}>
@@ -65,21 +69,21 @@ export default function Stats({ user }: Props) {
 
       {/* Objects progress */}
       {stats && stats.objects && stats.objects.length > 0 && (
-        <div className="app-card p-5 mb-4">
+        <div className="app-card p-4 sm:p-5 mb-4">
           <h3 className="font-oswald text-base font-semibold text-white mb-4">Прогресс объектов</h3>
           <div className="flex flex-col gap-4">
             {stats.objects.map(o => (
               <div key={o.id}>
-                <div className="flex justify-between text-sm mb-1.5">
-                  <span className="font-medium text-white truncate max-w-[60%]">{o.name}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs px-2 py-0.5 rounded-full" style={{
+                <div className="flex justify-between items-start gap-2 mb-1.5">
+                  <span className="font-medium text-white text-sm truncate max-w-[55%] sm:max-w-[65%]">{o.name}</span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-xs px-2 py-0.5 rounded-full hidden sm:inline-flex" style={{
                       background: o.status === 'active' ? 'rgba(34,197,94,0.12)' : o.status === 'done' ? 'rgba(148,163,184,0.1)' : 'rgba(245,158,11,0.12)',
                       color: o.status === 'active' ? 'var(--green)' : o.status === 'done' ? 'var(--text-muted)' : '#f59e0b',
                     }}>
                       {o.status === 'active' ? 'В работе' : o.status === 'done' ? 'Завершён' : 'Пауза'}
                     </span>
-                    <span className="font-bold" style={{ color: "var(--orange)" }}>{o.progress || 0}%</span>
+                    <span className="font-bold text-sm" style={{ color: "var(--orange)" }}>{o.progress || 0}%</span>
                   </div>
                 </div>
                 <div className="progress-bar mb-1">
@@ -102,11 +106,11 @@ export default function Stats({ user }: Props) {
         </div>
       )}
 
-      {/* Additional info */}
+      {/* Additional metrics — 2 cols always */}
       {stats && (
         <div className="grid grid-cols-2 gap-3 mt-4">
           <div className="app-card p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,140,0,0.12)" }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(255,140,0,0.12)" }}>
               <Icon name="Camera" size={18} style={{ color: "var(--orange)" }} />
             </div>
             <div>
@@ -115,7 +119,7 @@ export default function Stats({ user }: Props) {
             </div>
           </div>
           <div className="app-card p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(59,130,246,0.12)" }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(59,130,246,0.12)" }}>
               <Icon name="MessageSquare" size={18} style={{ color: "var(--blue)" }} />
             </div>
             <div>

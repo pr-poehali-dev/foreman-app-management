@@ -309,3 +309,179 @@
   animation: shimmer 1.5s infinite;
   border-radius: 8px;
 }
+
+/* ===== АДАПТИВНОСТЬ ===== */
+
+/* Минимальный размер касания 44px для мобильных */
+.tap-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Заголовок страницы — адаптивный */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.page-header h1 {
+  font-size: clamp(22px, 5vw, 30px);
+}
+
+/* Фильтры — горизонтальный скролл на мобильном */
+.filter-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.filter-row::-webkit-scrollbar {
+  display: none;
+}
+
+/* btn-orange — увеличенный для тапа */
+.btn-orange {
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+/* Кнопки иконок — минимум 40px */
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  background: var(--surface-3);
+  color: var(--text-secondary);
+  border: 1px solid var(--surface-4);
+}
+
+/* Карточки на мобильном — меньше padding */
+@media (max-width: 640px) {
+  .app-card {
+    border-radius: 14px;
+  }
+
+  .metric-card {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .btn-orange {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  /* Safe area для iOS */
+  .tab-bar {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* Таблица в карточке — всегда горизонтальный скролл */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-scroll::-webkit-scrollbar {
+  height: 3px;
+}
+.table-scroll::-webkit-scrollbar-thumb {
+  background: var(--surface-4);
+}
+
+/* Модал — на мобильном снизу как sheet */
+@media (max-width: 640px) {
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal-card {
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+}
+
+/* Скрыть hover-эффекты на тач-устройствах */
+@media (hover: none) {
+  .app-card:hover {
+    transform: none;
+  }
+  .btn-orange:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .group:hover .opacity-0 {
+    opacity: 1 !important;
+  }
+}
+
+/* Input — удобный для мобильных */
+.mobile-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 16px; /* предотвращает zoom на iOS */
+  outline: none;
+  background: var(--surface-3);
+  border: 1px solid var(--surface-4);
+  color: var(--text-primary);
+  transition: border-color 0.2s;
+}
+.mobile-input:focus {
+  border-color: var(--orange);
+}
+
+/* Таблица табеля — компактная */
+@media (max-width: 640px) {
+  .timesheet-cell {
+    width: 28px;
+    min-width: 28px;
+    padding: 0 1px;
+  }
+  .timesheet-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 10px;
+  }
+}
+
+/* Chat — фиксированная высота на мобильном */
+@media (max-width: 640px) {
+  .chat-messages {
+    padding: 12px;
+  }
+}
+
+/* Предотвращаем select zoom на iOS */
+select,
+input,
+textarea {
+  font-size: 16px !important;
+}
+
+@media (min-width: 640px) {
+  select,
+  input,
+  textarea {
+    font-size: 14px !important;
+  }
+}
