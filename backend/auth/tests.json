@@ -1,0 +1,12 @@
+{
+  "tests": [
+    {
+      "name": "Login manager",
+      "method": "POST",
+      "path": "/",
+      "body": {"login": "MASALOV", "password": "MASALOV1"},
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    }
+  ]
+}
