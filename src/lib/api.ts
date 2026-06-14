@@ -63,9 +63,32 @@ export async function registerForeman(payload: { login: string; password: string
 
 // ---- API core ----
 async function call(path: string, method = 'GET', body?: object) {
-  const opts: RequestInit = { method, headers: headers({ 'X-Api-Path': path }) };
-  opts.body = JSON.stringify({ __path: path, ...(body || {}) });
-  const res = await fetch(API_URL, opts);
+  // Путь всегда в заголовке X-Api-Path
+  const h = headers({ 'X-Api-Path': path });
+  let url = API_URL;
+
+  if (method === 'GET') {
+    // GET: параметры в query string, body не отправляем
+    if (body && Object.keys(body).length > 0) {
+      const q = new URLSearchParams();
+      for (const [k, v] of Object.entries(body)) {
+        if (v !== undefined && v !== null) q.append(k, String(v));
+      }
+      url += '?' + q.toString();
+    }
+    const res = await fetch(url, { method: 'GET', headers: h });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Ошибка');
+    return data;
+  }
+
+  // POST / PUT / DELETE: параметры в body
+  const opts: RequestInit = {
+    method,
+    headers: h,
+    body: JSON.stringify(body || {}),
+  };
+  const res = await fetch(url, opts);
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Ошибка');
   return data;

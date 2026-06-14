@@ -10,7 +10,10 @@ CORS = {
 }
 
 def get_conn():
-    return psycopg2.connect(os.environ['DATABASE_URL'])
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
+    dsn = os.environ['DATABASE_URL']
+    conn = psycopg2.connect(dsn, options=f'-c search_path={schema}')
+    return conn
 
 def get_user(cur, session_id):
     if not session_id:
@@ -53,12 +56,19 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 200, 'headers': CORS, 'body': ''}
 
     method = event.get('httpMethod', 'GET')
-    body = json.loads(event.get('body') or '{}')
+    raw_body = event.get('body') or '{}'
+    body = json.loads(raw_body) if raw_body.strip() else {}
     session_id = event.get('headers', {}).get('x-session-id', '')
+    # Query-параметры (GET передаёт сюда фильтры)
     params = event.get('queryStringParameters') or {}
 
-    # Маршрут берём из body.__path или заголовка X-Api-Path
-    path = body.get('__path', '') or event.get('headers', {}).get('x-api-path', '') or '/'
+    # Путь берём из заголовка X-Api-Path (фронтенд всегда ставит)
+    # Для POST/PUT/DELETE также принимаем из body.__path как запасной вариант
+    path = (
+        event.get('headers', {}).get('x-api-path', '')
+        or body.get('__path', '')
+        or '/'
+    )
 
     conn = get_conn()
     cur = conn.cursor()
